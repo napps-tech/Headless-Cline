@@ -77,7 +77,7 @@ export class Cline {
 	private lastMessageTs?: number
 	private consecutiveMistakeCount: number = 0
 	private consecutiveMistakeCountForApplyDiff: Map<string, number> = new Map()
-	private providerRef: WeakRef<ClineProvider>
+	//private providerRef: WeakRef<ClineProvider>
 	private abort: boolean = false
 	didFinishAborting = false
 	abandoned = false
@@ -104,7 +104,7 @@ export class Cline {
 		images?: string[] | undefined,
 		historyItem?: HistoryItem | undefined,
 	) {
-		this.providerRef = new WeakRef(provider)
+		//this.providerRef = new WeakRef(provider)
 		this.api = buildApiHandler(apiConfiguration)
 		this.terminalManager = new TerminalManager()
 		this.urlContentFetcher = new UrlContentFetcher(provider.context)
