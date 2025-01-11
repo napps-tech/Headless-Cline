@@ -51,7 +51,7 @@ import { BrowserSession } from "../services/browser/BrowserSession"
 import { OpenRouterHandler } from "../api/providers/openrouter"
 import { McpHub } from "../services/mcp/McpHub"
 
-const cwd = ""; //TODO: フォルダー内のファイルを取得する？
+const cwd = ""; //TODO: current working directory インスタンスにすれば良さそう？
 
 type ToolResponse = string | Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam>
 type UserContent = Array<
