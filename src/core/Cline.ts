@@ -10,7 +10,7 @@ import { serializeError } from "serialize-error"
 import * as vscode from "vscode"
 import { ApiHandler, SingleCompletionHandler, buildApiHandler } from "../api"
 import { ApiStream } from "../api/transform/stream"
-import { DiffViewProvider } from "../integrations/editor/DiffViewProvider"
+import { DiffViewProvider, VscodeDiffViewProvider } from "../integrations/editor/DiffViewProvider"
 import { findToolName, formatContentBlockToMarkdown } from "../integrations/misc/export-markdown"
 import { extractTextFromFile, addLineNumbers, stripLineNumbers, everyLineHasLineNumbers, truncateOutput } from "../integrations/misc/extract-text"
 import { TerminalManager } from "../integrations/terminal/TerminalManager"
@@ -115,7 +115,7 @@ export class Cline {
 		this.terminalManager = new TerminalManager()
 		this.urlContentFetcher = new UrlContentFetcher(provider.context)
 		this.browserSession = new BrowserSession(provider.context)
-		this.diffViewProvider = new DiffViewProvider(cwd)
+		this.diffViewProvider = new VscodeDiffViewProvider(cwd)
 		this.platform = new ShellProvider()
 		this.customInstructions = customInstructions
 		this.diffEnabled = enableDiff ?? false

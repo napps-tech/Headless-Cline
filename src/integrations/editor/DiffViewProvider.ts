@@ -10,7 +10,24 @@ import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics"
 
 export const DIFF_VIEW_URI_SCHEME = "cline-diff"
 
-export class DiffViewProvider {
+export interface DiffViewProvider {
+	editType?: "create" | "modify"
+	isEditing: boolean
+	originalContent: string | undefined
+
+	open(relPath: string): Promise<void>
+	update(accumulatedContent: string, isFinal: boolean): Promise<void>
+	saveChanges(): Promise<{
+		newProblemsMessage: string | undefined
+		userEdits: string | undefined
+		finalContent: string | undefined
+	}>
+	revertChanges(): Promise<void>
+	scrollToFirstDiff(): void
+	reset(): Promise<void>
+}
+
+export class VscodeDiffViewProvider implements DiffViewProvider {
 	editType?: "create" | "modify"
 	isEditing = false
 	originalContent: string | undefined
