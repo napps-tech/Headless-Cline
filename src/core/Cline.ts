@@ -13,7 +13,8 @@ import { DiffViewProvider, VscodeDiffViewProvider } from "../integrations/editor
 import { findToolName, formatContentBlockToMarkdown } from "../integrations/misc/export-markdown"
 import { extractTextFromFile, addLineNumbers, stripLineNumbers, everyLineHasLineNumbers, truncateOutput } from "../integrations/misc/extract-text"
 import { TerminalManager, VscodeTerminalManager } from "../integrations/terminal/TerminalManager"
-import { UrlContentFetcher, PuppeteerUrlContentFetcher } from "../services/browser/UrlContentFetcher"
+import { UrlContentFetcher, VscodeUrlContentFetcher } from "../services/browser/UrlContentFetcher"
+import { BrowserSession, VscodeBrowserSession } from "../services/browser/BrowserSession"
 import { listFiles } from "../services/glob/list-files"
 import { regexSearchFiles } from "../services/ripgrep"
 import { parseSourceCodeForDefinitionsTopLevel } from "../services/tree-sitter"
@@ -47,7 +48,6 @@ import { addCustomInstructions, SYSTEM_PROMPT } from "./prompts/system"
 import { truncateHalfConversation } from "./sliding-window"
 import { ClineProvider, GlobalFileNames } from "./webview/ClineProvider"
 import { detectCodeOmission } from "../integrations/editor/detect-omission"
-import { BrowserSession } from "../services/browser/BrowserSession"
 import { OpenRouterHandler } from "../api/providers/openrouter"
 import { McpHub } from "../services/mcp/McpHub"
 import { PlatformProvider, ShellProvider } from "./platform"
@@ -112,8 +112,8 @@ export class Cline {
 		this.providerRef = new WeakRef(provider)
 		this.api = buildApiHandler(apiConfiguration)
 		this.terminalManager = new VscodeTerminalManager()
-		this.urlContentFetcher = new PuppeteerUrlContentFetcher(provider.context)
-		this.browserSession = new BrowserSession(provider.context)
+		this.urlContentFetcher = new VscodeUrlContentFetcher(provider.context)
+		this.browserSession = new VscodeBrowserSession(provider.context)
 		this.diffViewProvider = new VscodeDiffViewProvider(cwd)
 		this.platform = new ShellProvider()
 		this.customInstructions = customInstructions

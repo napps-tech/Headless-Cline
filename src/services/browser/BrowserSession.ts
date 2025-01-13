@@ -14,7 +14,17 @@ interface PCRStats {
 	executablePath: string
 }
 
-export class BrowserSession {
+export interface BrowserSession {
+	launchBrowser(): Promise<void>;
+	closeBrowser(): Promise<BrowserActionResult>;
+	navigateToUrl(url: string): Promise<BrowserActionResult>;
+	click(coordinate: string): Promise<BrowserActionResult>;
+	type(text: string): Promise<BrowserActionResult>;
+	scrollDown(): Promise<BrowserActionResult>;
+	scrollUp(): Promise<BrowserActionResult>;
+}
+
+export class VscodeBrowserSession implements BrowserSession {
 	private context: vscode.ExtensionContext
 	private browser?: Browser
 	private page?: Page

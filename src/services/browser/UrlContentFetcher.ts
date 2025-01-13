@@ -19,7 +19,7 @@ export interface UrlContentFetcher {
 	urlToMarkdown(url: string): Promise<string>;
 }
 
-export class PuppeteerUrlContentFetcher implements UrlContentFetcher {
+export class VscodeUrlContentFetcher implements UrlContentFetcher {
 	private context: vscode.ExtensionContext
 	private browser?: Browser
 	private page?: Page
