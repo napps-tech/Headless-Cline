@@ -8,20 +8,11 @@ import pWaitFor from "p-wait-for"
 import delay from "delay"
 import { fileExistsAtPath } from "../../utils/fs"
 import { BrowserActionResult } from "../../shared/ExtensionMessage"
+import { BrowserSession } from "../../core/integrations/browser"
 
 interface PCRStats {
 	puppeteer: { launch: typeof launch }
 	executablePath: string
-}
-
-export interface BrowserSession {
-	launchBrowser(): Promise<void>;
-	closeBrowser(): Promise<BrowserActionResult>;
-	navigateToUrl(url: string): Promise<BrowserActionResult>;
-	click(coordinate: string): Promise<BrowserActionResult>;
-	type(text: string): Promise<BrowserActionResult>;
-	scrollDown(): Promise<BrowserActionResult>;
-	scrollUp(): Promise<BrowserActionResult>;
 }
 
 export class VscodeBrowserSession implements BrowserSession {

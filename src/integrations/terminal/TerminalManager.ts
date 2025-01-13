@@ -3,6 +3,7 @@ import * as vscode from "vscode"
 import { arePathsEqual } from "../../utils/path"
 import { mergePromise, TerminalProcess, TerminalProcessResultPromise } from "./TerminalProcess"
 import { TerminalInfo, TerminalRegistry } from "./TerminalRegistry"
+import { TerminalManager } from "../../core/integrations/terminal"
 
 /*
 TerminalManager:
@@ -90,14 +91,6 @@ type ExtendedTerminal = vscode.Terminal & {
 	}
 }
 
-export interface TerminalManager {
-	runCommand(terminalInfo: TerminalInfo, command: string): TerminalProcessResultPromise;
-	getOrCreateTerminal(cwd: string): Promise<TerminalInfo>;
-	getTerminals(busy: boolean): { id: number; lastCommand: string }[];
-	getUnretrievedOutput(terminalId: number): string;
-	isProcessHot(terminalId: number): boolean;
-	disposeAll(): void;
-}
 
 export class VscodeTerminalManager implements TerminalManager {
 	private terminalIds: Set<number> = new Set()

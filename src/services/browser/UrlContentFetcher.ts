@@ -7,19 +7,14 @@ import TurndownService from "turndown"
 // @ts-ignore
 import PCR from "puppeteer-chromium-resolver"
 import { fileExistsAtPath } from "../../utils/fs"
+import { UrlContentFetcher } from "../../core/integrations/browser"
 
 interface PCRStats {
 	puppeteer: { launch: typeof launch }
 	executablePath: string
 }
 
-export interface UrlContentFetcher {
-	launchBrowser(): Promise<void>;
-	closeBrowser(): Promise<void>;
-	urlToMarkdown(url: string): Promise<string>;
-}
-
-export class VscodeUrlContentFetcher implements UrlContentFetcher {
+export class VscodePuppeteerUrlContentFetcher implements UrlContentFetcher {
 	private context: vscode.ExtensionContext
 	private browser?: Browser
 	private page?: Page

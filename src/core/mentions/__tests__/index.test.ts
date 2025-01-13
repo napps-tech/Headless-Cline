@@ -65,7 +65,7 @@ jest.mock("../../../utils/git")
 
 // Now import the modules that use the mocks
 import { parseMentions, openMention } from "../index"
-import { UrlContentFetcher } from "../../../services/browser/UrlContentFetcher"
+import { UrlContentFetcher } from "../../integrations/browser"
 import * as git from "../../../utils/git"
 
 describe("mentions", () => {

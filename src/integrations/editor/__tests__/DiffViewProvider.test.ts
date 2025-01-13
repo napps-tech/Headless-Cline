@@ -1,4 +1,4 @@
-import { DiffViewProvider, VscodeDiffViewProvider } from '../DiffViewProvider';
+import {  VscodeDiffViewProvider } from '../DiffViewProvider';
 import * as vscode from 'vscode';
 
 // Mock vscode
