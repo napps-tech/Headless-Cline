@@ -13,7 +13,7 @@ import { DiffViewProvider, VscodeDiffViewProvider } from "../integrations/editor
 import { findToolName, formatContentBlockToMarkdown } from "../integrations/misc/export-markdown"
 import { extractTextFromFile, addLineNumbers, stripLineNumbers, everyLineHasLineNumbers, truncateOutput } from "../integrations/misc/extract-text"
 import { TerminalManager, VscodeTerminalManager } from "../integrations/terminal/TerminalManager"
-import { UrlContentFetcher } from "../services/browser/UrlContentFetcher"
+import { UrlContentFetcher, PuppeteerUrlContentFetcher } from "../services/browser/UrlContentFetcher"
 import { listFiles } from "../services/glob/list-files"
 import { regexSearchFiles } from "../services/ripgrep"
 import { parseSourceCodeForDefinitionsTopLevel } from "../services/tree-sitter"
@@ -112,7 +112,7 @@ export class Cline {
 		this.providerRef = new WeakRef(provider)
 		this.api = buildApiHandler(apiConfiguration)
 		this.terminalManager = new VscodeTerminalManager()
-		this.urlContentFetcher = new UrlContentFetcher(provider.context)
+		this.urlContentFetcher = new PuppeteerUrlContentFetcher(provider.context)
 		this.browserSession = new BrowserSession(provider.context)
 		this.diffViewProvider = new VscodeDiffViewProvider(cwd)
 		this.platform = new ShellProvider()

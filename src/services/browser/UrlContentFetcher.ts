@@ -13,7 +13,13 @@ interface PCRStats {
 	executablePath: string
 }
 
-export class UrlContentFetcher {
+export interface UrlContentFetcher {
+	launchBrowser(): Promise<void>;
+	closeBrowser(): Promise<void>;
+	urlToMarkdown(url: string): Promise<string>;
+}
+
+export class PuppeteerUrlContentFetcher implements UrlContentFetcher {
 	private context: vscode.ExtensionContext
 	private browser?: Browser
 	private page?: Page
