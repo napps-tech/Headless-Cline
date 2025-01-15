@@ -27,6 +27,12 @@ import { checkExistKey } from "../../shared/checkExistApiConfig"
 import { enhancePrompt } from "../../utils/enhance-prompt"
 import { getCommitInfo, searchCommits, getWorkingState } from "../../utils/git"
 import { ConfigManager } from "../config/ConfigManager"
+import { ClineProvider } from "./type"
+import { VscodePuppeteerUrlContentFetcher } from "../../services/browser/UrlContentFetcher"
+import { VscodeTerminalManager } from "../../integrations/terminal/TerminalManager"
+import { VscodeBrowserSession } from "../../services/browser/BrowserSession"
+import { VscodeDiffViewProvider } from "../../integrations/editor/DiffViewProvider"
+import { ShellProvider } from "../integrations/platform"
 
 /*
 https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/weather-webview/src/providers/WeatherViewProvider.ts
@@ -98,10 +104,10 @@ export const GlobalFileNames = {
 	mcpSettings: "cline_mcp_settings.json",
 }
 
-export class ClineProvider implements vscode.WebviewViewProvider {
+export class VscodeClineProvider implements vscode.WebviewViewProvider, ClineProvider {
 	public static readonly sideBarId = "roo-cline.SidebarProvider" // used in package.json as the view's id. This value cannot be changed due to how vscode caches views based on their id, and updating the id would break existing instances of the extension.
 	public static readonly tabPanelId = "roo-cline.TabPanelProvider"
-	private static activeInstances: Set<ClineProvider> = new Set()
+	private static activeInstances: Set<VscodeClineProvider> = new Set()
 	private disposables: vscode.Disposable[] = []
 	private view?: vscode.WebviewView | vscode.WebviewPanel
 	private cline?: Cline
@@ -112,10 +118,10 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 
 	constructor(
 		readonly context: vscode.ExtensionContext,
-		private readonly outputChannel: vscode.OutputChannel,
+		public readonly outputChannel: vscode.OutputChannel,
 	) {
 		this.outputChannel.appendLine("ClineProvider instantiated")
-		ClineProvider.activeInstances.add(this)
+		VscodeClineProvider.activeInstances.add(this)
 		this.workspaceTracker = new WorkspaceTracker(this)
 		this.mcpHub = new McpHub(this)
 		this.configManager = new ConfigManager(this.context)
@@ -145,11 +151,15 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 		this.mcpHub?.dispose()
 		this.mcpHub = undefined
 		this.outputChannel.appendLine("Disposed all disposables")
-		ClineProvider.activeInstances.delete(this)
+		VscodeClineProvider.activeInstances.delete(this)
 	}
 
-	public static getVisibleInstance(): ClineProvider | undefined {
+	public static getVisibleInstance(): VscodeClineProvider | undefined {
 		return findLast(Array.from(this.activeInstances), (instance) => instance.view?.visible === true)
+	}
+
+	public getGlobalStoragePath(): string | undefined {
+		return this.context.globalStorageUri.fsPath
 	}
 
 	resolveWebviewView(
@@ -243,8 +253,20 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 			fuzzyMatchThreshold
 		} = await this.getState()
 
+		const cwd =	vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop")
+		const urlContentFetcher = new VscodePuppeteerUrlContentFetcher(this.context)
+		const terminalManager = new VscodeTerminalManager()
+		const browserSession = new VscodeBrowserSession(this.context)
+		const diffViewProvider = new VscodeDiffViewProvider(cwd)
+		const platform = new ShellProvider()
+
 		this.cline = new Cline(
 			this,
+			urlContentFetcher,
+			terminalManager,
+			browserSession,
+			diffViewProvider,
+			platform,
 			apiConfiguration,
 			customInstructions,
 			diffEnabled,
@@ -263,8 +285,20 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 			fuzzyMatchThreshold
 		} = await this.getState()
 
+		const cwd =	vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop")
+		const urlContentFetcher = new VscodePuppeteerUrlContentFetcher(this.context)
+		const terminalManager = new VscodeTerminalManager()
+		const browserSession = new VscodeBrowserSession(this.context)
+		const diffViewProvider = new VscodeDiffViewProvider(cwd)
+		const platform = new ShellProvider()
+
 		this.cline = new Cline(
 			this,
+			urlContentFetcher,
+			terminalManager,
+			browserSession,
+			diffViewProvider,
+			platform,
 			apiConfiguration,
 			customInstructions,
 			diffEnabled,

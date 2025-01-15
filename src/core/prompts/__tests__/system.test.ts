@@ -1,7 +1,7 @@
 import { SYSTEM_PROMPT, addCustomInstructions } from '../system'
 import { McpHub } from '../../../services/mcp/McpHub'
 import { McpServer } from '../../../shared/mcp'
-import { ClineProvider } from '../../../core/webview/ClineProvider'
+import { VscodeClineProvider } from '../../../core/webview/ClineProvider'
 import { SearchReplaceDiffStrategy } from '../../../core/diff/strategies/search-replace'
 import fs from 'fs/promises'
 import os from 'os'
@@ -45,7 +45,7 @@ const mockProvider = {
       }
     }
   }
-} as unknown as ClineProvider
+} as unknown as VscodeClineProvider
 
 // Instead of extending McpHub, create a mock that implements just what we need
 const createMockMcpHub = (): McpHub => ({

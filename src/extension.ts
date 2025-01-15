@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import delay from "delay"
 import * as vscode from "vscode"
-import { ClineProvider } from "./core/webview/ClineProvider"
+import { VscodeClineProvider } from "./core/webview/ClineProvider"
 import { createClineAPI } from "./exports"
 import "./utils/path" // necessary to have access to String.prototype.toPosix
 import { DIFF_VIEW_URI_SCHEME } from "./integrations/editor/DiffViewProvider"
@@ -36,10 +36,10 @@ export function activate(context: vscode.ExtensionContext) {
 		context.globalState.update('allowedCommands', defaultCommands);
 	}
 
-	const sidebarProvider = new ClineProvider(context, outputChannel)
+	const sidebarProvider = new VscodeClineProvider(context, outputChannel)
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(ClineProvider.sideBarId, sidebarProvider, {
+		vscode.window.registerWebviewViewProvider(VscodeClineProvider.sideBarId, sidebarProvider, {
 			webviewOptions: { retainContextWhenHidden: true },
 		}),
 	)
@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
 		outputChannel.appendLine("Opening Cline in new tab")
 		// (this example uses webviewProvider activation event which is necessary to deserialize cached webview, but since we use retainContextWhenHidden, we don't need to use that event)
 		// https://github.com/microsoft/vscode-extension-samples/blob/main/webview-sample/src/extension.ts
-		const tabProvider = new ClineProvider(context, outputChannel)
+		const tabProvider = new VscodeClineProvider(context, outputChannel)
 		//const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined
 		const lastCol = Math.max(...vscode.window.visibleTextEditors.map((editor) => editor.viewColumn || 0))
 
@@ -74,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		const targetCol = hasVisibleEditors ? Math.max(lastCol + 1, 1) : vscode.ViewColumn.Two
 
-		const panel = vscode.window.createWebviewPanel(ClineProvider.tabPanelId, "Cline", targetCol, {
+		const panel = vscode.window.createWebviewPanel(VscodeClineProvider.tabPanelId, "Cline", targetCol, {
 			enableScripts: true,
 			retainContextWhenHidden: true,
 			localResourceRoots: [context.extensionUri],
@@ -128,7 +128,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const handleUri = async (uri: vscode.Uri) => {
 		const path = uri.path
 		const query = new URLSearchParams(uri.query.replace(/\+/g, "%2B"))
-		const visibleProvider = ClineProvider.getVisibleInstance()
+		const visibleProvider = VscodeClineProvider.getVisibleInstance()
 		if (!visibleProvider) {
 			return
 		}

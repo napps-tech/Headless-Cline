@@ -14,7 +14,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import * as vscode from "vscode"
 import { z } from "zod"
-import { ClineProvider, GlobalFileNames } from "../../core/webview/ClineProvider"
+import { VscodeClineProvider, GlobalFileNames } from "../../core/webview/ClineProvider"
 import {
 	McpResource,
 	McpResourceResponse,
@@ -48,14 +48,14 @@ const McpSettingsSchema = z.object({
 })
 
 export class McpHub {
-	private providerRef: WeakRef<ClineProvider>
+	private providerRef: WeakRef<VscodeClineProvider>
 	private disposables: vscode.Disposable[] = []
 	private settingsWatcher?: vscode.FileSystemWatcher
 	private fileWatchers: Map<string, FSWatcher> = new Map()
 	connections: McpConnection[] = []
 	isConnecting: boolean = false
 
-	constructor(provider: ClineProvider) {
+	constructor(provider: VscodeClineProvider) {
 		this.providerRef = new WeakRef(provider)
 		this.watchMcpSettingsFile()
 		this.initializeMcpServers()

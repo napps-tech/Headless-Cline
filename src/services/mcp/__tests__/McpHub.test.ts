@@ -1,19 +1,42 @@
 import type { McpHub as McpHubType } from '../McpHub'
-import type { ClineProvider } from '../../../core/webview/ClineProvider'
+import type { VscodeClineProvider } from '../../../core/webview/ClineProvider'
 import type { ExtensionContext, Uri } from 'vscode'
 import type { McpConnection } from '../McpHub'
 
-const vscode = require('vscode')
+// const vscode = require('vscode')
 const fs = require('fs/promises')
 const { McpHub } = require('../McpHub')
 
-jest.mock('vscode')
+jest.mock('vscode', () => ({
+  ExtensionContext: jest.fn(),
+  Uri: jest.fn(),
+  workspace: {
+    workspaceFolders: [{
+      uri: {
+        fsPath: '/mock/workspace/path'
+      }
+    }],
+    onDidChangeConfiguration: jest.fn().mockImplementation((callback) => ({
+      dispose: jest.fn()
+  })),
+  onDidSaveTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
+  onDidChangeTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
+  onDidOpenTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
+  onDidCloseTextDocument: jest.fn(() => ({ dispose: jest.fn() }))
+  },
+  window: {
+    showInformationMessage: jest.fn(),
+    createTextEditorDecorationType: jest.fn().mockReturnValue({
+        dispose: jest.fn()
+    })
+  }
+}))
 jest.mock('fs/promises')
 jest.mock('../../../core/webview/ClineProvider')
 
 describe('McpHub', () => {
   let mcpHub: McpHubType
-  let mockProvider: Partial<ClineProvider>
+  let mockProvider: Partial<VscodeClineProvider>
   const mockSettingsPath = '/mock/settings/path/cline_mcp_settings.json'
 
   beforeEach(() => {
@@ -77,7 +100,7 @@ describe('McpHub', () => {
       }
     }))
 
-    mcpHub = new McpHub(mockProvider as ClineProvider)
+    mcpHub = new McpHub(mockProvider as VscodeClineProvider)
   })
 
   describe('toggleToolAlwaysAllow', () => {

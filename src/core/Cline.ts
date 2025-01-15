@@ -50,11 +50,12 @@ import { AssistantMessageContent, parseAssistantMessage, ToolParamName, ToolUseN
 import { formatResponse } from "./prompts/responses"
 import { addCustomInstructions, SYSTEM_PROMPT } from "./prompts/system"
 import { truncateHalfConversation } from "./sliding-window"
-import { ClineProvider, GlobalFileNames } from "./webview/ClineProvider"
+import { VscodeClineProvider, GlobalFileNames } from "./webview/ClineProvider"
 import { detectCodeOmission } from "../integrations/editor/detect-omission"
 import { OpenRouterHandler } from "../api/providers/openrouter"
 import { McpHub } from "../services/mcp/McpHub"
 import { PlatformProvider, ShellProvider } from "./integrations/platform"
+import { ClineProvider } from "./webview/type"
 
 // デフォルトのワーキングディレクトリを設定
 // FIXME: このアプリケーションのworking directoryと実装したいアプリケーションのworking directoryが異なるため、このアプリケーションのworking directoryを実装したいアプリケーションのworking directoryに変更する必要がある
@@ -69,9 +70,6 @@ type UserContent = Array<
 export class Cline {
 	readonly taskId: string
 	api: ApiHandler
-	private terminalManager: TerminalManager
-	private urlContentFetcher: UrlContentFetcher
-	private browserSession: BrowserSession
 	private didEditFile: boolean = false
 	customInstructions?: string
 	diffStrategy?: DiffStrategy
@@ -89,6 +87,10 @@ export class Cline {
 	private abort: boolean = false
 	didFinishAborting = false
 	abandoned = false
+
+	private terminalManager: TerminalManager
+	private urlContentFetcher: UrlContentFetcher
+	private browserSession: BrowserSession
 	private diffViewProvider: DiffViewProvider
 	private platform: PlatformProvider
 
@@ -105,6 +107,11 @@ export class Cline {
 
 	constructor(
 		provider: ClineProvider,
+		urlContentFetcher: UrlContentFetcher,
+		terminalManager: TerminalManager,
+		browserSession: BrowserSession,
+		diffViewProvider: DiffViewProvider,
+		platform: PlatformProvider,
 		apiConfiguration: ApiConfiguration,
 		customInstructions?: string,
 		enableDiff?: boolean,
@@ -115,11 +122,11 @@ export class Cline {
 	) {
 		this.providerRef = new WeakRef(provider)
 		this.api = buildApiHandler(apiConfiguration)
-		this.terminalManager = new VscodeTerminalManager()
-		this.urlContentFetcher = new VscodePuppeteerUrlContentFetcher(provider.context)
-		this.browserSession = new VscodeBrowserSession(provider.context)
-		this.diffViewProvider = new VscodeDiffViewProvider(cwd)
-		this.platform = new ShellProvider()
+		this.terminalManager = terminalManager
+		this.urlContentFetcher = urlContentFetcher
+		this.browserSession = browserSession
+		this.diffViewProvider = diffViewProvider
+		this.platform = platform
 		this.customInstructions = customInstructions
 		this.diffEnabled = enableDiff ?? false
 		if (this.diffEnabled && this.api.getModel().id) {
@@ -139,7 +146,7 @@ export class Cline {
 	// Storing task to disk for history
 
 	private async ensureTaskDirectoryExists(): Promise<string> {
-		const globalStoragePath = this.providerRef.deref()?.context.globalStorageUri.fsPath
+		const globalStoragePath = this.providerRef.deref()?.getGlobalStoragePath()
 		if (!globalStoragePath) {
 			throw new Error("Global storage uri is invalid")
 		}
