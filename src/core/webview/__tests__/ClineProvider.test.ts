@@ -1,4 +1,4 @@
-import { ClineProvider } from '../ClineProvider'
+import { VscodeClineProvider } from '../ClineProvider'
 import * as vscode from 'vscode'
 import { ExtensionMessage, ExtensionState } from '../../../shared/ExtensionMessage'
 import { setSoundEnabled } from '../../../utils/sound'
@@ -61,12 +61,20 @@ jest.mock('vscode', () => ({
     },
     window: {
         showInformationMessage: jest.fn(),
+        createTextEditorDecorationType: jest.fn().mockReturnValue({
+            dispose: jest.fn()
+        })
     },
     workspace: {
         getConfiguration: jest.fn().mockReturnValue({
             get: jest.fn().mockReturnValue([]),
             update: jest.fn()
         }),
+        workspaceFolders: [{
+            uri: {
+                fsPath: '/mock/workspace/path'
+            }
+        }],
         onDidChangeConfiguration: jest.fn().mockImplementation((callback) => ({
             dispose: jest.fn()
         })),
@@ -155,7 +163,7 @@ afterAll(() => {
 })
 
 describe('ClineProvider', () => {
-    let provider: ClineProvider
+    let provider: VscodeClineProvider
     let mockContext: vscode.ExtensionContext
     let mockOutputChannel: vscode.OutputChannel
     let mockWebviewView: vscode.WebviewView
@@ -217,15 +225,15 @@ describe('ClineProvider', () => {
             })
         } as unknown as vscode.WebviewView
 
-        provider = new ClineProvider(mockContext, mockOutputChannel)
+        provider = new VscodeClineProvider(mockContext, mockOutputChannel)
     })
 
     test('constructor initializes correctly', () => {
-        expect(provider).toBeInstanceOf(ClineProvider)
+        expect(provider).toBeInstanceOf(VscodeClineProvider)
         // Since getVisibleInstance returns the last instance where view.visible is true
         // @ts-ignore - accessing private property for testing
         provider.view = mockWebviewView
-        expect(ClineProvider.getVisibleInstance()).toBe(provider)
+        expect(VscodeClineProvider.getVisibleInstance()).toBe(provider)
     })
 
     test('resolveWebviewView sets up webview correctly', () => {

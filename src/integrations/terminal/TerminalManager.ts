@@ -3,6 +3,7 @@ import * as vscode from "vscode"
 import { arePathsEqual } from "../../utils/path"
 import { mergePromise, TerminalProcess, TerminalProcessResultPromise } from "./TerminalProcess"
 import { TerminalInfo, TerminalRegistry } from "./TerminalRegistry"
+import { TerminalManager } from "../../core/integrations/terminal"
 
 /*
 TerminalManager:
@@ -90,7 +91,8 @@ type ExtendedTerminal = vscode.Terminal & {
 	}
 }
 
-export class TerminalManager {
+
+export class VscodeTerminalManager implements TerminalManager {
 	private terminalIds: Set<number> = new Set()
 	private processes: Map<number, TerminalProcess> = new Map()
 	private disposables: vscode.Disposable[] = []

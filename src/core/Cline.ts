@@ -7,14 +7,18 @@ import os from "os"
 import pWaitFor from "p-wait-for"
 import * as path from "path"
 import { serializeError } from "serialize-error"
-import * as vscode from "vscode"
 import { ApiHandler, SingleCompletionHandler, buildApiHandler } from "../api"
 import { ApiStream } from "../api/transform/stream"
-import { DiffViewProvider } from "../integrations/editor/DiffViewProvider"
+import { DiffViewProvider } from "./integrations/editor"
+import { VscodeDiffViewProvider } from "../integrations/editor/DiffViewProvider"
 import { findToolName, formatContentBlockToMarkdown } from "../integrations/misc/export-markdown"
 import { extractTextFromFile, addLineNumbers, stripLineNumbers, everyLineHasLineNumbers, truncateOutput } from "../integrations/misc/extract-text"
-import { TerminalManager } from "../integrations/terminal/TerminalManager"
-import { UrlContentFetcher } from "../services/browser/UrlContentFetcher"
+import { TerminalManager } from "./integrations/terminal"
+import { VscodeTerminalManager } from "../integrations/terminal/TerminalManager"
+import { UrlContentFetcher } from "./integrations/browser"
+import { VscodePuppeteerUrlContentFetcher } from "../services/browser/UrlContentFetcher"
+import { BrowserSession } from "./integrations/browser"
+import { VscodeBrowserSession } from "../services/browser/BrowserSession"
 import { listFiles } from "../services/glob/list-files"
 import { regexSearchFiles } from "../services/ripgrep"
 import { parseSourceCodeForDefinitionsTopLevel } from "../services/tree-sitter"
@@ -46,14 +50,17 @@ import { AssistantMessageContent, parseAssistantMessage, ToolParamName, ToolUseN
 import { formatResponse } from "./prompts/responses"
 import { addCustomInstructions, SYSTEM_PROMPT } from "./prompts/system"
 import { truncateHalfConversation } from "./sliding-window"
-import { ClineProvider, GlobalFileNames } from "./webview/ClineProvider"
+import { VscodeClineProvider, GlobalFileNames } from "./webview/ClineProvider"
 import { detectCodeOmission } from "../integrations/editor/detect-omission"
-import { BrowserSession } from "../services/browser/BrowserSession"
 import { OpenRouterHandler } from "../api/providers/openrouter"
 import { McpHub } from "../services/mcp/McpHub"
+import { PlatformProvider, ShellProvider } from "./integrations/platform"
+import { ClineProvider } from "./webview/type"
 
-const cwd =
-	vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop") // may or may not exist but fs checking existence would immediately ask for permission which would be bad UX, need to come up with a better solution
+// デフォルトのワーキングディレクトリを設定
+// FIXME: このアプリケーションのworking directoryと実装したいアプリケーションのworking directoryが異なるため、このアプリケーションのworking directoryを実装したいアプリケーションのworking directoryに変更する必要がある
+const cwd = process.cwd() ?? ""
+	// vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop") // may or may not exist but fs checking existence would immediately ask for permission which would be bad UX, need to come up with a better solution
 
 type ToolResponse = string | Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam>
 type UserContent = Array<
@@ -63,9 +70,6 @@ type UserContent = Array<
 export class Cline {
 	readonly taskId: string
 	api: ApiHandler
-	private terminalManager: TerminalManager
-	private urlContentFetcher: UrlContentFetcher
-	private browserSession: BrowserSession
 	private didEditFile: boolean = false
 	customInstructions?: string
 	diffStrategy?: DiffStrategy
@@ -83,7 +87,12 @@ export class Cline {
 	private abort: boolean = false
 	didFinishAborting = false
 	abandoned = false
+
+	private terminalManager: TerminalManager
+	private urlContentFetcher: UrlContentFetcher
+	private browserSession: BrowserSession
 	private diffViewProvider: DiffViewProvider
+	private platform: PlatformProvider
 
 	// streaming
 	private currentStreamingContentIndex = 0
@@ -98,6 +107,11 @@ export class Cline {
 
 	constructor(
 		provider: ClineProvider,
+		urlContentFetcher: UrlContentFetcher,
+		terminalManager: TerminalManager,
+		browserSession: BrowserSession,
+		diffViewProvider: DiffViewProvider,
+		platform: PlatformProvider,
 		apiConfiguration: ApiConfiguration,
 		customInstructions?: string,
 		enableDiff?: boolean,
@@ -108,10 +122,11 @@ export class Cline {
 	) {
 		this.providerRef = new WeakRef(provider)
 		this.api = buildApiHandler(apiConfiguration)
-		this.terminalManager = new TerminalManager()
-		this.urlContentFetcher = new UrlContentFetcher(provider.context)
-		this.browserSession = new BrowserSession(provider.context)
-		this.diffViewProvider = new DiffViewProvider(cwd)
+		this.terminalManager = terminalManager
+		this.urlContentFetcher = urlContentFetcher
+		this.browserSession = browserSession
+		this.diffViewProvider = diffViewProvider
+		this.platform = platform
 		this.customInstructions = customInstructions
 		this.diffEnabled = enableDiff ?? false
 		if (this.diffEnabled && this.api.getModel().id) {
@@ -131,7 +146,7 @@ export class Cline {
 	// Storing task to disk for history
 
 	private async ensureTaskDirectoryExists(): Promise<string> {
-		const globalStoragePath = this.providerRef.deref()?.context.globalStorageUri.fsPath
+		const globalStoragePath = this.providerRef.deref()?.getGlobalStoragePath()
 		if (!globalStoragePath) {
 			throw new Error("Global storage uri is invalid")
 		}
@@ -1189,17 +1204,15 @@ export class Cline {
 										))
 										break
 									} else {
-										vscode.window
+										this.platform
 											.showWarningMessage(
 												"Potential code truncation detected. This happens when the AI reaches its max output limit.",
 												"Follow this guide to fix the issue",
 											)
 											.then((selection) => {
 												if (selection === "Follow this guide to fix the issue") {
-													vscode.env.openExternal(
-														vscode.Uri.parse(
-															"https://github.com/cline/cline/wiki/Troubleshooting-%E2%80%90-Cline-Deleting-Code-with-%22Rest-of-Code-Here%22-Comments",
-														),
+													this.platform.openExternal(
+														"https://github.com/cline/cline/wiki/Troubleshooting-%E2%80%90-Cline-Deleting-Code-with-%22Rest-of-Code-Here%22-Comments",
 													)
 												}
 											})
@@ -2410,25 +2423,16 @@ export class Cline {
 		let details = ""
 
 		// It could be useful for cline to know if the user went from one or no file to another between messages, so we always include this context
-		details += "\n\n# VSCode Visible Files"
-		const visibleFiles = vscode.window.visibleTextEditors
-			?.map((editor) => editor.document?.uri?.fsPath)
-			.filter(Boolean)
-			.map((absolutePath) => path.relative(cwd, absolutePath).toPosix())
-			.join("\n")
+		details += "\n\n# Visible Files"
+		const visibleFiles = (await this.platform.getVisibleFiles()).join("\n")
 		if (visibleFiles) {
 			details += `\n${visibleFiles}`
 		} else {
 			details += "\n(No visible files)"
 		}
 
-		details += "\n\n# VSCode Open Tabs"
-		const openTabs = vscode.window.tabGroups.all
-			.flatMap((group) => group.tabs)
-			.map((tab) => (tab.input as vscode.TabInputText)?.uri?.fsPath)
-			.filter(Boolean)
-			.map((absolutePath) => path.relative(cwd, absolutePath).toPosix())
-			.join("\n")
+		details += "\n\n# Open Tabs"
+		const openTabs = (await this.platform.getOpenTabs()).join("\n")
 		if (openTabs) {
 			details += `\n${openTabs}`
 		} else {
@@ -2437,43 +2441,20 @@ export class Cline {
 
 		const busyTerminals = this.terminalManager.getTerminals(true)
 		const inactiveTerminals = this.terminalManager.getTerminals(false)
-		// const allTerminals = [...busyTerminals, ...inactiveTerminals]
 
 		if (busyTerminals.length > 0 && this.didEditFile) {
-			//  || this.didEditFile
 			await delay(300) // delay after saving file to let terminals catch up
 		}
 
-		// let terminalWasBusy = false
 		if (busyTerminals.length > 0) {
-			// wait for terminals to cool down
-			// terminalWasBusy = allTerminals.some((t) => this.terminalManager.isProcessHot(t.id))
 			await pWaitFor(() => busyTerminals.every((t) => !this.terminalManager.isProcessHot(t.id)), {
 				interval: 100,
 				timeout: 15_000,
 			}).catch(() => {})
 		}
 
-		// we want to get diagnostics AFTER terminal cools down for a few reasons: terminal could be scaffolding a project, dev servers (compilers like webpack) will first re-compile and then send diagnostics, etc
-		/*
-		let diagnosticsDetails = ""
-		const diagnostics = await this.diagnosticsMonitor.getCurrentDiagnostics(this.didEditFile || terminalWasBusy) // if cline ran a command (ie npm install) or edited the workspace then wait a bit for updated diagnostics
-		for (const [uri, fileDiagnostics] of diagnostics) {
-			const problems = fileDiagnostics.filter((d) => d.severity === vscode.DiagnosticSeverity.Error)
-			if (problems.length > 0) {
-				diagnosticsDetails += `\n## ${path.relative(cwd, uri.fsPath)}`
-				for (const diagnostic of problems) {
-					// let severity = diagnostic.severity === vscode.DiagnosticSeverity.Error ? "Error" : "Warning"
-					const line = diagnostic.range.start.line + 1 // VSCode lines are 0-indexed
-					const source = diagnostic.source ? `[${diagnostic.source}] ` : ""
-					diagnosticsDetails += `\n- ${source}Line ${line}: ${diagnostic.message}`
-				}
-			}
-		}
-		*/
-		this.didEditFile = false // reset, this lets us know when to wait for saved files to update terminals
+		this.didEditFile = false
 
-		// waiting for updated diagnostics lets terminal output be the most up-to-date possible
 		let terminalDetails = ""
 		if (busyTerminals.length > 0) {
 			// terminals are cool, let's retrieve their output
@@ -2483,8 +2464,6 @@ export class Cline {
 				const newOutput = this.terminalManager.getUnretrievedOutput(busyTerminal.id)
 				if (newOutput) {
 					terminalDetails += `\n### New Output\n${newOutput}`
-				} else {
-					// details += `\n(Still running, no new output)` // don't want to show this right after running the command
 				}
 			}
 		}
@@ -2509,13 +2488,6 @@ export class Cline {
 			}
 		}
 
-		// details += "\n\n# VSCode Workspace Errors"
-		// if (diagnosticsDetails) {
-		// 	details += diagnosticsDetails
-		// } else {
-		// 	details += "\n(No errors detected)"
-		// }
-
 		if (terminalDetails) {
 			details += terminalDetails
 		}
@@ -2532,15 +2504,15 @@ export class Cline {
 			hour12: true
 		})
 		const timeZone = formatter.resolvedOptions().timeZone
-		const timeZoneOffset = -now.getTimezoneOffset() / 60 // Convert to hours and invert sign to match conventional notation
+		const timeZoneOffset = -now.getTimezoneOffset() / 60
 		const timeZoneOffsetStr = `${timeZoneOffset >= 0 ? '+' : ''}${timeZoneOffset}:00`
 		details += `\n\n# Current Time\n${formatter.format(now)} (${timeZone}, UTC${timeZoneOffsetStr})`
 
 		if (includeFileDetails) {
+			const cwd = this.platform.getWorkingDirectory()
 			details += `\n\n# Current Working Directory (${cwd.toPosix()}) Files\n`
 			const isDesktop = arePathsEqual(cwd, path.join(os.homedir(), "Desktop"))
 			if (isDesktop) {
-				// don't want to immediately access desktop since it would show permission popup
 				details += "(Desktop files not shown automatically. Use list_files to explore if needed.)"
 			} else {
 				const [files, didHitLimit] = await listFiles(cwd, true, 200)

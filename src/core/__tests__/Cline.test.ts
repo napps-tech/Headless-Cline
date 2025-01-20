@@ -1,9 +1,18 @@
 import { Cline } from '../Cline';
-import { ClineProvider } from '../webview/ClineProvider';
+import { VscodeClineProvider } from '../webview/ClineProvider';
 import { ApiConfiguration, ModelInfo } from '../../shared/api';
 import { ApiStreamChunk } from '../../api/transform/stream';
 import { Anthropic } from '@anthropic-ai/sdk';
 import * as vscode from 'vscode';
+import { BrowserSession } from '../integrations/browser';
+import { UrlContentFetcher } from '../integrations/browser';
+import { TerminalManager } from '../integrations/terminal';
+import { DiffViewProvider } from '../integrations/editor';
+import { PlatformProvider, ShellProvider } from '../integrations/platform';
+import { VscodeDiffViewProvider } from '../../integrations/editor/DiffViewProvider';
+import { VscodeBrowserSession } from '../../services/browser/BrowserSession';
+import { VscodeTerminalManager } from '../../integrations/terminal/TerminalManager';
+import { VscodePuppeteerUrlContentFetcher } from '../../services/browser/UrlContentFetcher';
 
 // Mock all MCP-related modules
 jest.mock('@modelcontextprotocol/sdk/types.js', () => ({
@@ -187,10 +196,15 @@ jest.mock('default-shell', () => ({
 }));
 
 describe('Cline', () => {
-    let mockProvider: jest.Mocked<ClineProvider>;
+    let mockProvider: jest.Mocked<VscodeClineProvider>;
     let mockApiConfig: ApiConfiguration;
     let mockOutputChannel: any;
     let mockExtensionContext: vscode.ExtensionContext;
+    let mockUrlContentFetcher: UrlContentFetcher;
+    let mockTerminalManager: TerminalManager;
+    let mockBrowserSession: BrowserSession;
+    let mockDiffViewProvider: DiffViewProvider;
+    let mockPlatform: PlatformProvider; 
     
     beforeEach(() => {
         // Setup mock extension context
@@ -248,7 +262,7 @@ describe('Cline', () => {
         };
 
         // Setup mock provider with output channel
-        mockProvider = new ClineProvider(mockExtensionContext, mockOutputChannel) as jest.Mocked<ClineProvider>;
+        mockProvider = new VscodeClineProvider(mockExtensionContext, mockOutputChannel) as jest.Mocked<VscodeClineProvider>;
         
         // Setup mock API configuration
         mockApiConfig = {
@@ -276,12 +290,23 @@ describe('Cline', () => {
             uiMessagesFilePath: '/mock/storage/path/tasks/123/ui_messages.json',
             apiConversationHistory: []
         }));
+
+        mockUrlContentFetcher = new VscodePuppeteerUrlContentFetcher(mockExtensionContext);
+        mockTerminalManager = new VscodeTerminalManager();
+        mockBrowserSession = new VscodeBrowserSession(mockExtensionContext);
+        mockDiffViewProvider = new VscodeDiffViewProvider('/mock/workspace/path');
+        mockPlatform = new ShellProvider();
     });
 
     describe('constructor', () => {
         it('should respect provided settings', () => {
             const cline = new Cline(
                 mockProvider,
+                mockUrlContentFetcher,
+                mockTerminalManager,
+                mockBrowserSession,
+                mockDiffViewProvider,
+                mockPlatform,
                 mockApiConfig,
                 'custom instructions',
                 false,
@@ -296,6 +321,11 @@ describe('Cline', () => {
         it('should use default fuzzy match threshold when not provided', () => {
             const cline = new Cline(
                 mockProvider,
+                mockUrlContentFetcher,
+                mockTerminalManager,
+                mockBrowserSession,
+                mockDiffViewProvider,
+                mockPlatform,
                 mockApiConfig,
                 'custom instructions',
                 true,
@@ -313,6 +343,11 @@ describe('Cline', () => {
             
             const cline = new Cline(
                 mockProvider,
+                mockUrlContentFetcher,
+                mockTerminalManager,
+                mockBrowserSession,
+                mockDiffViewProvider,
+                mockPlatform,
                 mockApiConfig,
                 'custom instructions',
                 true,
@@ -332,6 +367,11 @@ describe('Cline', () => {
             
             const cline = new Cline(
                 mockProvider,
+                mockUrlContentFetcher,
+                mockTerminalManager,
+                mockBrowserSession,
+                mockDiffViewProvider,
+                mockPlatform,
                 mockApiConfig,
                 'custom instructions',
                 true,
@@ -350,6 +390,11 @@ describe('Cline', () => {
             expect(() => {
                 new Cline(
                     mockProvider,
+                    mockUrlContentFetcher,
+                    mockTerminalManager,
+                    mockBrowserSession,
+                    mockDiffViewProvider,
+                    mockPlatform,
                     mockApiConfig,
                     undefined, // customInstructions
                     false, // diffEnabled
@@ -407,6 +452,11 @@ describe('Cline', () => {
         it('should include timezone information in environment details', async () => {
             const cline = new Cline(
                 mockProvider,
+                mockUrlContentFetcher,
+                mockTerminalManager,
+                mockBrowserSession,
+                mockDiffViewProvider,
+                mockPlatform,
                 mockApiConfig,
                 undefined,
                 false,
@@ -427,6 +477,11 @@ describe('Cline', () => {
             it('should clean conversation history before sending to API', async () => {
                 const cline = new Cline(
                     mockProvider,
+                    mockUrlContentFetcher,
+                    mockTerminalManager,
+                    mockBrowserSession,
+                    mockDiffViewProvider,
+                    mockPlatform,
                     mockApiConfig,
                     undefined,
                     false,
@@ -543,6 +598,11 @@ describe('Cline', () => {
                 // Test with model that supports images
                 const clineWithImages = new Cline(
                     mockProvider,
+                    mockUrlContentFetcher,
+                    mockTerminalManager,
+                    mockBrowserSession,
+                    mockDiffViewProvider,
+                    mockPlatform,
                     configWithImages,
                     undefined,
                     false,
@@ -567,6 +627,11 @@ describe('Cline', () => {
                 // Test with model that doesn't support images
                 const clineWithoutImages = new Cline(
                     mockProvider,
+                    mockUrlContentFetcher,
+                    mockTerminalManager,
+                    mockBrowserSession,
+                    mockDiffViewProvider,
+                    mockPlatform,
                     configWithoutImages,
                     undefined,
                     false,
@@ -631,6 +696,11 @@ describe('Cline', () => {
             it('should handle API retry with countdown', async () => {
                 const cline = new Cline(
                     mockProvider,
+                    mockUrlContentFetcher,
+                    mockTerminalManager,
+                    mockBrowserSession,
+                    mockDiffViewProvider,
+                    mockPlatform,
                     mockApiConfig,
                     undefined,
                     false,
@@ -759,6 +829,11 @@ describe('Cline', () => {
                 it('should process mentions in task and feedback tags', async () => {
                     const cline = new Cline(
                         mockProvider,
+                        mockUrlContentFetcher,
+                        mockTerminalManager,
+                        mockBrowserSession,
+                        mockDiffViewProvider,
+                        mockPlatform,
                         mockApiConfig,
                         undefined,
                         false,

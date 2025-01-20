@@ -8,13 +8,14 @@ import pWaitFor from "p-wait-for"
 import delay from "delay"
 import { fileExistsAtPath } from "../../utils/fs"
 import { BrowserActionResult } from "../../shared/ExtensionMessage"
+import { BrowserSession } from "../../core/integrations/browser"
 
 interface PCRStats {
 	puppeteer: { launch: typeof launch }
 	executablePath: string
 }
 
-export class BrowserSession {
+export class VscodeBrowserSession implements BrowserSession {
 	private context: vscode.ExtensionContext
 	private browser?: Browser
 	private page?: Page

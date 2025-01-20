@@ -1,4 +1,4 @@
-import { DiffViewProvider } from '../DiffViewProvider';
+import {  VscodeDiffViewProvider } from '../DiffViewProvider';
 import * as vscode from 'vscode';
 
 // Mock vscode
@@ -31,7 +31,7 @@ jest.mock('../DecorationController', () => ({
 }));
 
 describe('DiffViewProvider', () => {
-	let diffViewProvider: DiffViewProvider;
+	let diffViewProvider: VscodeDiffViewProvider;
 	const mockCwd = '/mock/cwd';
 	let mockWorkspaceEdit: { replace: jest.Mock; delete: jest.Mock };
 
@@ -43,7 +43,7 @@ describe('DiffViewProvider', () => {
 		};
 		(vscode.WorkspaceEdit as jest.Mock).mockImplementation(() => mockWorkspaceEdit);
 
-		diffViewProvider = new DiffViewProvider(mockCwd);
+		diffViewProvider = new VscodeDiffViewProvider(mockCwd);
 		// Mock the necessary properties and methods
 		(diffViewProvider as any).relPath = 'test.txt';
 		(diffViewProvider as any).activeDiffEditor = {

@@ -7,10 +7,11 @@ import { formatResponse } from "../../core/prompts/responses"
 import { DecorationController } from "./DecorationController"
 import * as diff from "diff"
 import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics"
+import { DiffViewProvider  } from "../../core/integrations/editor"
 
 export const DIFF_VIEW_URI_SCHEME = "cline-diff"
 
-export class DiffViewProvider {
+export class VscodeDiffViewProvider implements DiffViewProvider {
 	editType?: "create" | "modify"
 	isEditing = false
 	originalContent: string | undefined

@@ -1,8 +1,8 @@
 import * as vscode from "vscode"
-import { ClineProvider } from "../core/webview/ClineProvider"
+import { VscodeClineProvider } from "../core/webview/ClineProvider"
 import { ClineAPI } from "./cline"
 
-export function createClineAPI(outputChannel: vscode.OutputChannel, sidebarProvider: ClineProvider): ClineAPI {
+export function createClineAPI(outputChannel: vscode.OutputChannel, sidebarProvider: VscodeClineProvider): ClineAPI {
 	const api: ClineAPI = {
 		setCustomInstructions: async (value: string) => {
 			await sidebarProvider.updateCustomInstructions(value)

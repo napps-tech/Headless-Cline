@@ -1,13 +1,13 @@
 import * as vscode from "vscode"
 import * as path from "path"
 import { openFile } from "../../integrations/misc/open-file"
-import { UrlContentFetcher } from "../../services/browser/UrlContentFetcher"
 import { mentionRegexGlobal, formatGitSuggestion, type MentionSuggestion } from "../../shared/context-mentions"
 import fs from "fs/promises"
 import { extractTextFromFile } from "../../integrations/misc/extract-text"
 import { isBinaryFile } from "isbinaryfile"
 import { diagnosticsToProblemsString } from "../../integrations/diagnostics"
 import { getCommitInfo, getWorkingState } from "../../utils/git"
+import { UrlContentFetcher } from "../integrations/browser"
 
 export async function openMention(mention?: string): Promise<void> {
 	if (!mention) {
