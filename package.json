@@ -147,6 +147,7 @@
   },
   "scripts": {
     "build": "npm run build:webview && npm run vsix",
+    "cline": "node dist/cli.js",
     "build:webview": "cd webview-ui && npm run build",
     "changeset": "changeset",
     "check-types": "tsc --noEmit",
